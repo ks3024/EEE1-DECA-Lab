@@ -1,0 +1,41 @@
+MOV R6, #0          // Initialise memory pointer
+
+LDR R0, [R6, #0]    // Load operand "A" from DATAMEM
+LDR R1, [R6, #1]    // Load operand "B" from DATAMEM
+
+MOV R2, #0          // Clear result MSByte
+MOV R3, #0          // Clear result LSByte
+
+LSL R4, R1, #8      // R4 := b0 << 8
+JEQ #9              // Skip byte if zero
+MOV R2, R0          // R2 := (a1:a0)
+MUL R2, R1          // R2 := a0 * b0
+LSR R4, R0, #8      // R4 := a1
+MUL R4, R1          // R4 := a1 * b0
+LSR R3, R4, #8      // R3 := (a1 * b0)[15:8]
+LSL R4, R4, #8      // R4 := (a1 * b0)[7:0] << 8
+ADD R2, R2, R4      // R2 := a0 * b0 + (a1 * b0)[7:0] << 8
+ADC R3, #0          // Propagate carry to MSByte of result
+LSR R4, R1, #8      // R4 := b1
+JEQ #10             // Skip byte if zero
+MUL R4, R0          // R4 := (a0 * b1)
+LSR R5, R4, #8      // R5 := (a0 * b1)[15:8]
+LSL R4, R4, #8      // R4 := (a0 * b1)[7:0] << 8
+ADD R2, R2, R4      // R2 := a0 * b0 + ((a1 * b0)[7:0] + (a0 * b1)[7:0]) << 8
+ADC R3, R3, R5      // R3 := (a1 * b0)[15:8] + (a0 * b1)[15:8] with previous carries
+LSR R4, R0, #8      // R4 := a1
+LSR R5, R1, #8      // R5 := b1
+MUL R4, R5          // R4 := a1 * b1
+ADD R3, R3, R4      // R3 := a1 * b1 + (a1 * b0)[15:8] + (a0 * b1)[15:8] with carries
+
+LDR R0, [R6, #2]    // Load expected LSByte from DATAMEM
+LDR R1, [R6, #3]    // Load expected MSByte from DATAMEM
+
+CMP R0, R2          // Compare actual and expected LSByte of result
+JNE #0              // Halt CPU execution on mismatch
+CMP R1, R3          // Compare actual and expected MSByte of result
+JNE #0              // Halt CPU execution on mismatch
+
+ADD R6, #4          // Increment memory pointer by 4
+JCC #-32            // Return to loop start if no memory address overflow
+JMP #0              // Halt CPU execution when test is finished successfully

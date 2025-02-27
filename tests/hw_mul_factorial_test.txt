@@ -1,0 +1,8 @@
+MOV R0, #1    // Counter
+MOV R1, #1    // Factorial Result
+
+CMP R0, #5    // Maximum counter value is 5
+JHI #4        // Exit loop when counter exceeds 5
+MUL R1, R0  // Factorial definition
+ADD R0, #1    // Increment counter
+JMP #-4       // Return to loop condition checking
